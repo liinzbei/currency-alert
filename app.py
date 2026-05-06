@@ -23,7 +23,7 @@ data = requests.get(url).json()
 gbp = 1 / data["rates"]["GBP"]
 jpy_100 = (1 / data["rates"]["JPY"]) * 100
 
-if gbp < 41:
+if gbp < 1000:
     send_line(f"📉 GBP ต่ำกว่า 41: {gbp:.2f}")
 
 if jpy_100 <= 20.80:
