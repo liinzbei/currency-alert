@@ -21,10 +21,17 @@ url = "https://api.exchangerate-api.com/v4/latest/THB"
 data = requests.get(url).json()
 
 gbp = 1 / data["rates"]["GBP"]
+usd = 1 / data["rates"]["USD"]
 jpy_100 = (1 / data["rates"]["JPY"]) * 100
 
-if gbp < 1000:
-    send_line(f"📉 GBP ต่ำกว่า 41: {gbp:.2f}")
+# GBP
+if gbp < 41:
+    send_line(f"📉 GBP ลดลงเหลือ {gbp:.2f}")
 
+# USD
+if usd > 35:
+    send_line(f"📈 USD สูงขึ้นเกิน 35: {usd:.2f}")
+
+# JPY (100 yen)
 if jpy_100 <= 20.80:
-    send_line(f"📉 100 เยน ต่ำกว่า 20.80: {jpy_100:.2f}")
+    send_line(f"📉 100 เยน ลดลงเหลือ {jpy_100:.2f}")
