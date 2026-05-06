@@ -20,7 +20,7 @@ def send_line(msg):
 url = "https://api.exchangerate-api.com/v4/latest/THB"
 data = requests.get(url).json()
 
-gbp = 1 / data["rates"]["GBP"]
+gbp = data["rates"]["GBP"]
 usd = 1 / data["rates"]["USD"]
 jpy_100 = (1 / data["rates"]["JPY"]) * 100
 
