@@ -1,5 +1,1 @@
-{
-  "gbp_alerted": false,
-  "usd_alerted": false,
-  "jpy_alerted": false
-}
+{"gbp_alerted": true, "usd_alerted": false, "jpy_alerted": false}
