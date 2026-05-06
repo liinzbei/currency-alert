@@ -25,7 +25,7 @@ usd = 1 / data["rates"]["USD"]
 jpy_100 = (1 / data["rates"]["JPY"]) * 100
 
 # GBP
-if gbp < 41:
+if gbp < 1000:
     send_line(f"📉 GBP ลดลงเหลือ {gbp:.2f}")
 
 # USD
@@ -33,5 +33,5 @@ if usd > 35:
     send_line(f"📈 USD สูงขึ้นเกิน 35: {usd:.2f}")
 
 # JPY (100 yen)
-if jpy_100 <= 20.80:
+if jpy_100 <= 20:
     send_line(f"📉 100 เยน ลดลงเหลือ {jpy_100:.2f}")
