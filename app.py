@@ -183,7 +183,7 @@ if prev_usd:
 # =========================
 # USD BUY ZONES
 # =========================
-usd_buy_levels = [32, 31, 30]
+usd_buy_levels = [32, 31, 30, 29]
 
 for level in usd_buy_levels:
 
@@ -191,11 +191,21 @@ for level in usd_buy_levels:
 
     if usd < level and can_alert(key):
 
-        send_line(
-            f"🚨💵 USD BUY SIGNAL 🚨\n"
-            f"USD ต่ำกว่า {level}\n"
-            f"ตอนนี้: {usd:.2f} THB"
-        )
+        if level == 29:
+
+            send_line(
+                f"👑 EXTREME USD BUY ZONE 👑\n"
+                f"USD ต่ำกว่า 29 แล้ว\n"
+                f"ตอนนี้: {usd:.2f} THB"
+            )
+
+        else:
+
+            send_line(
+                f"🚨💵 USD BUY SIGNAL 🚨\n"
+                f"USD ต่ำกว่า {level}\n"
+                f"ตอนนี้: {usd:.2f} THB"
+            )
 
         mark_alert(key)
 
@@ -203,7 +213,7 @@ for level in usd_buy_levels:
 # =========================
 # USD SELL ZONES
 # =========================
-usd_sell_levels = [34, 35, 36]
+usd_sell_levels = [34, 35, 36, 37]
 
 for level in usd_sell_levels:
 
@@ -211,11 +221,21 @@ for level in usd_sell_levels:
 
     if usd > level and can_alert(key):
 
-        send_line(
-            f"🔥💰 USD SELL SIGNAL 🔥\n"
-            f"USD ข้าม {level}\n"
-            f"ตอนนี้: {usd:.2f} THB"
-        )
+        if level == 37:
+
+            send_line(
+                f"☠️ EXTREME USD SELL ZONE ☠️\n"
+                f"USD ข้าม 37 แล้ว\n"
+                f"ตอนนี้: {usd:.2f} THB"
+            )
+
+        else:
+
+            send_line(
+                f"🔥💰 USD SELL SIGNAL 🔥\n"
+                f"USD ข้าม {level}\n"
+                f"ตอนนี้: {usd:.2f} THB"
+            )
 
         mark_alert(key)
 
