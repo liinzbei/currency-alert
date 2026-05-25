@@ -16,6 +16,7 @@ ALERT_COOLDOWN_HOURS = 6
 # SEND LINE
 # =========================
 def send_line(msg):
+
     url = "https://api.line.me/v2/bot/message/push"
 
     headers = {
@@ -25,10 +26,16 @@ def send_line(msg):
 
     data = {
         "to": USER_ID,
-        "messages": [{"type": "text", "text": msg}]
+        "messages": [
+            {
+                "type": "text",
+                "text": msg
+            }
+        ]
     }
 
     try:
+
         res = requests.post(
             url,
             headers=headers,
@@ -40,6 +47,7 @@ def send_line(msg):
         print("LINE RESPONSE:", res.text)
 
     except Exception as e:
+
         print("LINE ERROR:", str(e))
 
 
@@ -47,7 +55,9 @@ def send_line(msg):
 # TEST MODE
 # =========================
 if len(sys.argv) > 1 and sys.argv[1] == "test":
+
     send_line("✅ TEST MESSAGE FROM GITHUB ACTION")
+
     sys.exit(0)
 
 
@@ -57,6 +67,7 @@ if len(sys.argv) > 1 and sys.argv[1] == "test":
 if os.path.exists(STATE_FILE):
 
     with open(STATE_FILE, "r") as f:
+
         state = json.load(f)
 
 else:
@@ -84,18 +95,21 @@ def can_alert(key):
     last_time = state["alerts"].get(key)
 
     if not last_time:
+
         return True
 
     last_dt = datetime.fromisoformat(last_time)
 
-    return now - last_dt > timedelta(
-        hours=ALERT_COOLDOWN_HOURS
-    )
+    return (
+        now - last_dt
+    ) > timedelta(hours=ALERT_COOLDOWN_HOURS)
 
 
 def mark_alert(key):
 
-    state["alerts"][key] = datetime.utcnow().isoformat()
+    state["alerts"][key] = (
+        datetime.utcnow().isoformat()
+    )
 
 
 # =========================
@@ -103,11 +117,31 @@ def mark_alert(key):
 # =========================
 url = "https://api.exchangerate-api.com/v4/latest/THB"
 
-data = requests.get(url, timeout=15).json()
+try:
 
+    data = requests.get(
+        url,
+        timeout=15
+    ).json()
+
+except Exception as e:
+
+    print("API ERROR:", str(e))
+
+    sys.exit(1)
+
+
+# =========================
+# CALCULATE RATES
+# =========================
 usd = 1 / data["rates"]["USD"]
+
 gbp = 1 / data["rates"]["GBP"]
-jpy_100 = (1 / data["rates"]["JPY"]) * 100
+
+jpy_100 = (
+    1 / data["rates"]["JPY"]
+) * 100
+
 
 print("USD:", usd)
 print("GBP:", gbp)
@@ -121,7 +155,7 @@ prev_usd = state["last_rates"]["usd"]
 
 
 # =========================
-# USD TREND
+# USD TREND DETECTION
 # =========================
 if prev_usd:
 
@@ -158,9 +192,9 @@ for level in usd_buy_levels:
     if usd < level and can_alert(key):
 
         send_line(
-            f"💵 USD BUY SIGNAL\n"
+            f"🚨💵 USD BUY SIGNAL 🚨\n"
             f"USD ต่ำกว่า {level}\n"
-            f"ตอนนี้: {usd:.2f}"
+            f"ตอนนี้: {usd:.2f} THB"
         )
 
         mark_alert(key)
@@ -178,52 +212,61 @@ for level in usd_sell_levels:
     if usd > level and can_alert(key):
 
         send_line(
-            f"🔥 USD SELL SIGNAL\n"
+            f"🔥💰 USD SELL SIGNAL 🔥\n"
             f"USD ข้าม {level}\n"
-            f"ตอนนี้: {usd:.2f}"
+            f"ตอนนี้: {usd:.2f} THB"
         )
 
         mark_alert(key)
 
 
 # =========================
-# GBP TRAVEL ZONE
+# GBP TRAVEL ALERT
 # =========================
 if gbp < 42 and can_alert("gbp_low"):
 
     send_line(
-        f"🇬🇧✈️ GBP ต่ำกว่า 42\n"
-        f"ตอนนี้: {gbp:.2f}"
+        f"🇬🇧✈️ GBP ต่ำกว่า 42 แล้ว\n"
+        f"ตอนนี้: {gbp:.2f} THB"
     )
 
     mark_alert("gbp_low")
 
 
 # =========================
-# JPY TRAVEL ZONE
+# JPY TRAVEL ALERT
 # =========================
 if jpy_100 <= 20 and can_alert("jpy_low"):
 
     send_line(
         f"🇯🇵🛍️ เยนลงแล้ว\n"
-        f"100 เยน = {jpy_100:.2f}"
+        f"100 เยน = {jpy_100:.2f} THB"
     )
 
     mark_alert("jpy_low")
 
 
 # =========================
-# DAILY SUMMARY
+# DAILY SUMMARY 9AM TH
 # =========================
-today = datetime.utcnow().date().isoformat()
+now_utc = datetime.utcnow()
 
-if state["last_summary_date"] != today:
+thai_hour = (
+    now_utc.hour + 7
+) % 24
+
+today = now_utc.date().isoformat()
+
+if (
+    thai_hour == 9
+    and state["last_summary_date"] != today
+):
 
     send_line(
         f"☀️ FX Morning Report\n\n"
-        f"USD: {usd:.2f}\n"
-        f"GBP: {gbp:.2f}\n"
-        f"100 JPY: {jpy_100:.2f}"
+        f"USD: {usd:.2f} THB\n"
+        f"GBP: {gbp:.2f} THB\n"
+        f"100 JPY: {jpy_100:.2f} THB"
     )
 
     state["last_summary_date"] = today
@@ -233,7 +276,9 @@ if state["last_summary_date"] != today:
 # SAVE CURRENT RATES
 # =========================
 state["last_rates"]["usd"] = usd
+
 state["last_rates"]["gbp"] = gbp
+
 state["last_rates"]["jpy"] = jpy_100
 
 
@@ -241,6 +286,8 @@ state["last_rates"]["jpy"] = jpy_100
 # SAVE STATE
 # =========================
 with open(STATE_FILE, "w") as f:
+
     json.dump(state, f)
+
 
 print("STATE SAVED")
