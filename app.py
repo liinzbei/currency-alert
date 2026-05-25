@@ -2,15 +2,18 @@ import requests
 import os
 import json
 import sys
+from datetime import datetime, timedelta
 
 TOKEN = os.environ["LINE_TOKEN"]
 USER_ID = os.environ["USER_ID"]
 
 STATE_FILE = "state.json"
 
+ALERT_COOLDOWN_HOURS = 6
+
 
 # =========================
-# ส่ง LINE
+# SEND LINE
 # =========================
 def send_line(msg):
     url = "https://api.line.me/v2/bot/message/push"
@@ -49,147 +52,195 @@ if len(sys.argv) > 1 and sys.argv[1] == "test":
 
 
 # =========================
-# โหลด state
+# LOAD STATE
 # =========================
 if os.path.exists(STATE_FILE):
+
     with open(STATE_FILE, "r") as f:
         state = json.load(f)
+
 else:
+
     state = {
-        "gbp_low_alerted": False,
+        "last_rates": {
+            "usd": None,
+            "gbp": None,
+            "jpy": None
+        },
 
-        "usd_low_alerted": False,
-        "usd_recovered_alerted": False,
-        "usd_high_alerted": False,
+        "alerts": {},
 
-        "jpy_alerted": False
+        "last_summary_date": None
     }
-
-print("CURRENT STATE:", state)
 
 
 # =========================
-# ดึงค่าเงิน
+# HELPERS
+# =========================
+def can_alert(key):
+
+    now = datetime.utcnow()
+
+    last_time = state["alerts"].get(key)
+
+    if not last_time:
+        return True
+
+    last_dt = datetime.fromisoformat(last_time)
+
+    return now - last_dt > timedelta(
+        hours=ALERT_COOLDOWN_HOURS
+    )
+
+
+def mark_alert(key):
+
+    state["alerts"][key] = datetime.utcnow().isoformat()
+
+
+# =========================
+# GET FX DATA
 # =========================
 url = "https://api.exchangerate-api.com/v4/latest/THB"
 
-try:
-    data = requests.get(url, timeout=15).json()
+data = requests.get(url, timeout=15).json()
 
-except Exception as e:
-    print("API ERROR:", str(e))
-    sys.exit(1)
-
-
-# =========================
-# คำนวณค่าเงิน
-# =========================
-gbp = 1 / data["rates"]["GBP"]
 usd = 1 / data["rates"]["USD"]
+gbp = 1 / data["rates"]["GBP"]
 jpy_100 = (1 / data["rates"]["JPY"]) * 100
 
-print("GBP:", gbp)
 print("USD:", usd)
+print("GBP:", gbp)
 print("JPY100:", jpy_100)
 
 
 # =========================
-# GBP < 42
+# PREVIOUS VALUES
 # =========================
-if gbp < 42:
-
-    print("GBP LOW CONDITION MET")
-
-    if not state["gbp_low_alerted"]:
-
-        send_line(f"📉 GBP ต่ำกว่า 42: {gbp:.2f}")
-
-        state["gbp_low_alerted"] = True
-
-else:
-    print("GBP RESET")
-    state["gbp_low_alerted"] = False
+prev_usd = state["last_rates"]["usd"]
 
 
 # =========================
-# USD < 31
+# USD TREND
 # =========================
-if usd < 31:
+if prev_usd:
 
-    print("USD LOW CONDITION MET")
+    diff = usd - prev_usd
 
-    if not state["usd_low_alerted"]:
+    if abs(diff) >= 0.3:
 
-        send_line(f"💸 USD ต่ำกว่า 31: {usd:.2f}")
+        if diff > 0:
 
-        state["usd_low_alerted"] = True
+            send_line(
+                f"📈 USD กำลังขึ้นแรง\n"
+                f"{prev_usd:.2f} → {usd:.2f}\n"
+                f"(+{diff:.2f})"
+            )
 
-        # reset recovery flag
-        state["usd_recovered_alerted"] = False
+        else:
 
-else:
-    # reset low state
-    state["usd_low_alerted"] = False
-
-
-# =========================
-# USD RECOVERED > 31
-# =========================
-if usd > 31:
-
-    print("USD RECOVERY CONDITION MET")
-
-    if not state["usd_recovered_alerted"]:
-
-        send_line(f"🔄 USD กลับมายืนเหนือ 31: {usd:.2f}")
-
-        state["usd_recovered_alerted"] = True
-
-else:
-    state["usd_recovered_alerted"] = False
+            send_line(
+                f"📉 USD กำลังลงแรง\n"
+                f"{prev_usd:.2f} → {usd:.2f}\n"
+                f"({diff:.2f})"
+            )
 
 
 # =========================
-# USD > 35
+# USD BUY ZONES
 # =========================
-if usd > 35:
+usd_buy_levels = [32, 31, 30]
 
-    print("USD HIGH CONDITION MET")
+for level in usd_buy_levels:
 
-    if not state["usd_high_alerted"]:
+    key = f"usd_below_{level}"
 
-        send_line(f"📈 USD ข้าม 35: {usd:.2f}")
-
-        state["usd_high_alerted"] = True
-
-else:
-    state["usd_high_alerted"] = False
-
-
-# =========================
-# JPY <= 20
-# =========================
-if jpy_100 <= 20:
-
-    print("JPY CONDITION MET")
-
-    if not state["jpy_alerted"]:
+    if usd < level and can_alert(key):
 
         send_line(
-            f"📉 100 เยน ต่ำกว่าหรือเท่ากับ 20: {jpy_100:.2f}"
+            f"💵 USD BUY SIGNAL\n"
+            f"USD ต่ำกว่า {level}\n"
+            f"ตอนนี้: {usd:.2f}"
         )
 
-        state["jpy_alerted"] = True
-
-else:
-    print("JPY RESET")
-    state["jpy_alerted"] = False
+        mark_alert(key)
 
 
 # =========================
-# save state
+# USD SELL ZONES
+# =========================
+usd_sell_levels = [34, 35, 36]
+
+for level in usd_sell_levels:
+
+    key = f"usd_above_{level}"
+
+    if usd > level and can_alert(key):
+
+        send_line(
+            f"🔥 USD SELL SIGNAL\n"
+            f"USD ข้าม {level}\n"
+            f"ตอนนี้: {usd:.2f}"
+        )
+
+        mark_alert(key)
+
+
+# =========================
+# GBP TRAVEL ZONE
+# =========================
+if gbp < 42 and can_alert("gbp_low"):
+
+    send_line(
+        f"🇬🇧✈️ GBP ต่ำกว่า 42\n"
+        f"ตอนนี้: {gbp:.2f}"
+    )
+
+    mark_alert("gbp_low")
+
+
+# =========================
+# JPY TRAVEL ZONE
+# =========================
+if jpy_100 <= 20 and can_alert("jpy_low"):
+
+    send_line(
+        f"🇯🇵🛍️ เยนลงแล้ว\n"
+        f"100 เยน = {jpy_100:.2f}"
+    )
+
+    mark_alert("jpy_low")
+
+
+# =========================
+# DAILY SUMMARY
+# =========================
+today = datetime.utcnow().date().isoformat()
+
+if state["last_summary_date"] != today:
+
+    send_line(
+        f"☀️ FX Morning Report\n\n"
+        f"USD: {usd:.2f}\n"
+        f"GBP: {gbp:.2f}\n"
+        f"100 JPY: {jpy_100:.2f}"
+    )
+
+    state["last_summary_date"] = today
+
+
+# =========================
+# SAVE CURRENT RATES
+# =========================
+state["last_rates"]["usd"] = usd
+state["last_rates"]["gbp"] = gbp
+state["last_rates"]["jpy"] = jpy_100
+
+
+# =========================
+# SAVE STATE
 # =========================
 with open(STATE_FILE, "w") as f:
     json.dump(state, f)
 
-print("NEW STATE:", state)
+print("STATE SAVED")
