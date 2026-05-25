@@ -3,6 +3,7 @@ name: Currency Alert
 on:
   schedule:
     - cron: "*/10 * * * *"
+
   workflow_dispatch:
 
 permissions:
