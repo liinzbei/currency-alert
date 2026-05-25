@@ -1,1 +1,9 @@
-{"gbp_alerted": true, "usd_alerted": false, "jpy_alerted": false}
+{
+  "gbp_low_alerted": false,
+
+  "usd_low_alerted": false,
+  "usd_recovered_alerted": false,
+  "usd_high_alerted": false,
+
+  "jpy_alerted": false
+}
