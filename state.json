@@ -1,9 +1,11 @@
 {
-  "gbp_low_alerted": false,
+  "last_rates": {
+    "usd": null,
+    "gbp": null,
+    "jpy": null
+  },
 
-  "usd_low_alerted": false,
-  "usd_recovered_alerted": false,
-  "usd_high_alerted": false,
+  "alerts": {},
 
-  "jpy_alerted": false
+  "last_summary_date": null
 }
