@@ -1,11 +1,1 @@
-{
-  "last_rates": {
-    "usd": null,
-    "gbp": null,
-    "jpy": null
-  },
-
-  "alerts": {},
-
-  "last_summary_date": null
-}
+{"last_rates": {"usd": 32.67973856209151, "gbp": 43.859649122807014, "jpy": 20.491803278688526}, "alerts": {}, "last_summary_date": null}
