@@ -8,6 +8,7 @@ USER_ID = os.environ["USER_ID"]
 
 STATE_FILE = "state.json"
 
+
 # =========================
 # ส่ง LINE
 # =========================
@@ -55,8 +56,12 @@ if os.path.exists(STATE_FILE):
         state = json.load(f)
 else:
     state = {
-        "gbp_alerted": False,
-        "usd_alerted": False,
+        "gbp_low_alerted": False,
+
+        "usd_low_alerted": False,
+        "usd_recovered_alerted": False,
+        "usd_high_alerted": False,
+
         "jpy_alerted": False
     }
 
@@ -89,21 +94,59 @@ print("JPY100:", jpy_100)
 
 
 # =========================
-# GBP < 41
+# GBP < 42
 # =========================
-if gbp < 41:
+if gbp < 42:
 
-    print("GBP CONDITION MET")
+    print("GBP LOW CONDITION MET")
 
-    if not state["gbp_alerted"]:
+    if not state["gbp_low_alerted"]:
 
-        send_line(f"📉 GBP ต่ำกว่า 41: {gbp:.2f}")
+        send_line(f"📉 GBP ต่ำกว่า 42: {gbp:.2f}")
 
-        state["gbp_alerted"] = True
+        state["gbp_low_alerted"] = True
 
 else:
     print("GBP RESET")
-    state["gbp_alerted"] = False
+    state["gbp_low_alerted"] = False
+
+
+# =========================
+# USD < 31
+# =========================
+if usd < 31:
+
+    print("USD LOW CONDITION MET")
+
+    if not state["usd_low_alerted"]:
+
+        send_line(f"💸 USD ต่ำกว่า 31: {usd:.2f}")
+
+        state["usd_low_alerted"] = True
+
+        # reset recovery flag
+        state["usd_recovered_alerted"] = False
+
+else:
+    # reset low state
+    state["usd_low_alerted"] = False
+
+
+# =========================
+# USD RECOVERED > 31
+# =========================
+if usd > 31:
+
+    print("USD RECOVERY CONDITION MET")
+
+    if not state["usd_recovered_alerted"]:
+
+        send_line(f"🔄 USD กลับมายืนเหนือ 31: {usd:.2f}")
+
+        state["usd_recovered_alerted"] = True
+
+else:
+    state["usd_recovered_alerted"] = False
 
 
 # =========================
@@ -111,17 +154,16 @@ else:
 # =========================
 if usd > 35:
 
-    print("USD CONDITION MET")
+    print("USD HIGH CONDITION MET")
 
-    if not state["usd_alerted"]:
+    if not state["usd_high_alerted"]:
 
         send_line(f"📈 USD ข้าม 35: {usd:.2f}")
 
-        state["usd_alerted"] = True
+        state["usd_high_alerted"] = True
 
 else:
-    print("USD RESET")
-    state["usd_alerted"] = False
+    state["usd_high_alerted"] = False
 
 
 # =========================
