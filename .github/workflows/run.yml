@@ -26,8 +26,8 @@ jobs:
       - name: Install requests
         run: pip install requests
 
-      - name: Run TEST
-        run: python app.py test
+      - name: Run script
+        run: python app.py
         env:
           LINE_TOKEN: ${{ secrets.LINE_TOKEN }}
           USER_ID: ${{ secrets.USER_ID }}
